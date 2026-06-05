@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { PortfolioContext } from './context/PortfolioContext';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -9,6 +10,8 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 
 const App = () => {
+  const { isLoading } = useContext(PortfolioContext);
+
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('portfolio-theme');
     return saved || 'light';
@@ -22,6 +25,25 @@ const App = () => {
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
+
+  if (isLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        width: '100vw',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-primary)',
+        color: 'var(--text-primary)',
+        fontSize: '1.1rem',
+        fontWeight: 600,
+        fontFamily: 'Inter, sans-serif'
+      }}>
+        Loading portfolio details...
+      </div>
+    );
+  }
 
   return (
     <div className="app">

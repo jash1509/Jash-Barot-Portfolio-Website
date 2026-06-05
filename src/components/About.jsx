@@ -1,8 +1,12 @@
+import { useContext } from 'react';
+import { PortfolioContext } from '../context/PortfolioContext';
 import { FiBookOpen, FiAward, FiMapPin } from 'react-icons/fi';
 import SectionTitle from './SectionTitle';
 import '../styles/about.css';
 
 const About = () => {
+  const { profile } = useContext(PortfolioContext);
+
   return (
     <section id="about" className="about section">
       <div className="container">
@@ -16,9 +20,9 @@ const About = () => {
             <p>
               I am a{' '}
               <span className="about-highlight">
-                B.Tech Artificial Intelligence &amp; Data Science
+                {profile.education.degree}
               </span>{' '}
-              student at CGPIT, Bardoli. I enjoy building responsive web
+              student at {profile.education.college}. I enjoy building responsive web
               applications, exploring Generative AI, and developing AI-powered
               solutions through{' '}
               <span className="about-highlight">Prompt Engineering</span> and{' '}
@@ -40,13 +44,13 @@ const About = () => {
               </div>
               <div className="about-card-title">Education</div>
               <div className="about-card-subtitle">
-                B.Tech Artificial Intelligence &amp; Data Science
+                {profile.education.degree}
               </div>
               <div className="about-card-detail">
                 <FiMapPin style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-                CGPIT, Bardoli (UTU)
+                {profile.education.college}
               </div>
-              <div className="about-card-detail">2024 – 2028</div>
+              <div className="about-card-detail">{profile.education.duration}</div>
             </div>
 
             <div className="about-card">

@@ -1,8 +1,12 @@
+import { useContext } from 'react';
+import { PortfolioContext } from '../context/PortfolioContext';
 import { FiArrowDown, FiMail } from 'react-icons/fi';
 import { FaReact, FaJsSquare, FaBrain } from 'react-icons/fa';
 import '../styles/hero.css';
 
 const Hero = () => {
+  const { profile } = useContext(PortfolioContext);
+
   const handleScroll = (e, href) => {
     e.preventDefault();
     const element = document.querySelector(href);
@@ -24,21 +28,20 @@ const Hero = () => {
 
           <p className="hero-greeting">Hello, I&apos;m</p>
           <h1 className="hero-name">
-            <span>Jash Barot</span>
+            <span>{profile.name}</span>
           </h1>
 
           <div className="hero-title">
-            <span>Frontend Developer</span>
-            <span className="hero-title-divider" />
-            <span>AI &amp; DS Student</span>
-            <span className="hero-title-divider" />
-            <span>Prompt Engineer</span>
+            {profile.titles.map((title, index) => (
+              <span key={title} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {index > 0 && <span className="hero-title-divider" />}
+                <span>{title}</span>
+              </span>
+            ))}
           </div>
 
           <p className="hero-description">
-            Passionate about creating responsive web applications, intuitive user
-            experiences, and AI-powered solutions using modern JavaScript
-            technologies and Generative AI.
+            {profile.bio}
           </p>
 
           <div className="hero-buttons">
@@ -60,15 +63,15 @@ const Hero = () => {
 
           <div className="hero-stats">
             <div className="hero-stat">
-              <div className="hero-stat-number">4+</div>
+              <div className="hero-stat-number">{profile.stats.projectsCount}</div>
               <div className="hero-stat-label">Projects</div>
             </div>
             <div className="hero-stat">
-              <div className="hero-stat-number">5+</div>
+              <div className="hero-stat-number">{profile.stats.techCount}</div>
               <div className="hero-stat-label">Technologies</div>
             </div>
             <div className="hero-stat">
-              <div className="hero-stat-number">1</div>
+              <div className="hero-stat-number">{profile.stats.gptsCount}</div>
               <div className="hero-stat-label">Custom GPT</div>
             </div>
           </div>

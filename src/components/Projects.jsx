@@ -1,9 +1,12 @@
+import { useContext } from 'react';
+import { PortfolioContext } from '../context/PortfolioContext';
 import SectionTitle from './SectionTitle';
 import ProjectCard from './ProjectCard';
-import projectsData from '../data/projectsData';
 import '../styles/projects.css';
 
 const Projects = () => {
+  const { projects } = useContext(PortfolioContext);
+
   return (
     <section id="projects" className="projects section">
       <div className="container">
@@ -13,7 +16,7 @@ const Projects = () => {
         />
 
         <div className="projects-grid">
-          {projectsData.map(({ id, title, description, technologies, github, liveDemo, featured }) => (
+          {projects.map(({ id, title, description, technologies, github, liveDemo, featured }) => (
             <ProjectCard
               key={id}
               title={title}

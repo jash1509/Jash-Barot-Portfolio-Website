@@ -1,28 +1,12 @@
+import { useContext } from 'react';
+import { PortfolioContext } from '../context/PortfolioContext';
 import { FiBriefcase, FiCalendar, FiCheckCircle } from 'react-icons/fi';
 import SectionTitle from './SectionTitle';
 import '../styles/experience.css';
 
-const experienceData = [
-  {
-    id: 1,
-    role: 'Intern Trainee Engineer',
-    company: 'Skyttus Pvt. Ltd.',
-    duration: '2 Months',
-    type: 'internship',
-    typeLabel: 'Internship',
-    description:
-      'Working as an Intern Trainee Engineer, gaining hands-on industry experience in frontend development and modern web technologies.',
-    highlights: [
-      'Building responsive web applications using ReactJS and modern JavaScript',
-      'Collaborating with the development team on real-world client projects',
-      'Learning industry best practices for code quality and version control',
-      'Applying AI & Data Science knowledge to enhance development workflows',
-    ],
-    technologies: ['ReactJS', 'JavaScript', 'CSS3', 'Git', 'GitHub'],
-  },
-];
-
 const Experience = () => {
+  const { experiences } = useContext(PortfolioContext);
+
   return (
     <section id="experience" className="experience section">
       <div className="container">
@@ -32,7 +16,7 @@ const Experience = () => {
         />
 
         <div className="experience-timeline">
-          {experienceData.map(
+          {experiences.map(
             ({ id, role, company, duration, type, typeLabel, description, highlights, technologies }) => (
               <div key={id} className="experience-item">
                 <div className="experience-dot">

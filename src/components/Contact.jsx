@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import {
   FiMail,
   FiPhone,
@@ -8,10 +8,12 @@ import {
   FiAlertCircle,
   FiCheckCircle,
 } from 'react-icons/fi';
+import { PortfolioContext } from '../context/PortfolioContext';
 import SectionTitle from './SectionTitle';
 import '../styles/contact.css';
 
 const Contact = () => {
+  const { profile } = useContext(PortfolioContext);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,6 +22,7 @@ const Contact = () => {
 
   const [errors, setErrors] = useState({});
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateField = (name, value) => {
     switch (name) {
@@ -59,7 +62,7 @@ const Contact = () => {
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validate all fields
@@ -72,9 +75,36 @@ const Contact = () => {
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
-      setIsSuccess(true);
-      setFormData({ name: '', email: '', message: '' });
-      setTimeout(() => setIsSuccess(false), 5000);
+      setIsSubmitting(true);
+      const accessKey = profile?.web3FormsKey || import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE";
+      try {
+        const response = await fetch("https://api.web3forms.com/submit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            access_key: accessKey,
+            name: formData.name,
+            email: formData.email,
+            message: formData.message,
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          setIsSuccess(true);
+          setFormData({ name: '', email: '', message: '' });
+          setTimeout(() => setIsSuccess(false), 5000);
+        } else {
+          setErrors({ submit: result.message || "Something went wrong." });
+        }
+      } catch (err) {
+        setErrors({ submit: "Failed to connect to the form submission service." });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -82,26 +112,26 @@ const Contact = () => {
     {
       icon: <FiMail />,
       label: 'Email',
-      value: 'jashbarot69@gmail.com',
-      href: 'mailto:jashbarot69@gmail.com',
+      value: profile?.email || 'jashbarot69@gmail.com',
+      href: `mailto:${profile?.email || 'jashbarot69@gmail.com'}`,
     },
     {
       icon: <FiPhone />,
       label: 'Phone',
-      value: '+91 8347665218',
-      href: 'tel:+918347665218',
+      value: profile?.phone || '+91 8347665218',
+      href: `tel:${(profile?.phone || '+918347665218').replace(/\s+/g, '')}`,
     },
     {
       icon: <FiGithub />,
       label: 'GitHub',
-      value: 'github.com/jash1509',
-      href: 'https://github.com/jash1509',
+      value: (profile?.github || 'https://github.com/jash1509').replace('https://', ''),
+      href: profile?.github || 'https://github.com/jash1509',
     },
     {
       icon: <FiLinkedin />,
       label: 'LinkedIn',
-      value: 'Barot Jash Miteshbhai',
-      href: 'https://linkedin.com/in/barot-jash-miteshbhai',
+      value: profile?.fullName || 'Barot Jash Miteshbhai',
+      href: profile?.linkedin || 'https://linkedin.com/in/barot-jash-miteshbhai',
     },
   ];
 
@@ -204,8 +234,25 @@ const Contact = () => {
                 )}
               </div>
 
-              <button type="submit" className="btn btn-primary form-submit-btn">
-                <FiSend /> Send Message
+              {errors.submit && (
+                <div className="form-error" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f87171', fontSize: '0.88rem' }}>
+                  <FiAlertCircle /> {errors.submit}
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                className="btn btn-primary form-submit-btn"
+                disabled={isSubmitting}
+                style={{ cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}
+              >
+                {isSubmitting ? (
+                  <span>Sending...</span>
+                ) : (
+                  <>
+                    <FiSend /> Send Message
+                  </>
+                )}
               </button>
 
               {isSuccess && (

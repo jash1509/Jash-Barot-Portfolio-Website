@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
+import { PortfolioContext } from '../context/PortfolioContext';
 import { FiChevronRight } from 'react-icons/fi';
 import SectionTitle from './SectionTitle';
 import SkillCard from './SkillCard';
-import skillsData from '../data/skillsData';
+import { getIconComponent } from '../data/skillsData';
 import '../styles/skills.css';
 
 const Skills = () => {
+  const { skills } = useContext(PortfolioContext);
+  
   // Frontend expanded by default to demonstrate interactivity
   const [expandedCategories, setExpandedCategories] = useState({
     'Frontend': true,
@@ -27,7 +30,7 @@ const Skills = () => {
         />
 
         <div className="skills-grid">
-          {skillsData.map(({ category, skills }) => {
+          {skills.map(({ category, skills: skillItems }) => {
             const isExpanded = !!expandedCategories[category];
             return (
               <div key={category} className="skills-category">
@@ -41,8 +44,8 @@ const Skills = () => {
                   {category}
                 </h3>
                 <div className={`skills-list ${isExpanded ? 'expanded' : ''}`}>
-                  {skills.map(({ name, icon }) => (
-                    <SkillCard key={name} name={name} icon={icon} />
+                  {skillItems.map(({ name, icon }) => (
+                    <SkillCard key={name} name={name} icon={getIconComponent(icon)} />
                   ))}
                 </div>
               </div>

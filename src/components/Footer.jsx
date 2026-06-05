@@ -24,11 +24,9 @@ const Footer = () => {
 
   return (
     <footer className="footer">
-      <div className="container footer-content">
-        <span className="footer-logo">JB</span>
-        <p className="footer-tagline">
-          Building responsive web applications and AI-powered solutions with
-          modern JavaScript technologies.
+      <div className="container footer-container">
+        <p className="footer-copyright">
+          &copy; {currentYear} Barot Jash Miteshbhai. All Rights Reserved.
         </p>
 
         <div className="footer-socials">
@@ -46,16 +44,18 @@ const Footer = () => {
           ))}
         </div>
 
-        <div className="footer-divider" />
-
-        <div className="footer-bottom">
-          <p className="footer-copyright">
-            &copy; {currentYear} Barot Jash Miteshbhai. All Rights Reserved.
-          </p>
-          <p className="footer-made-with">
-            Made with <FiHeart className="footer-heart" /> using React
-          </p>
-        </div>
+        <p className="footer-made-with">
+          <span>Made with <FiHeart className="footer-heart" style={{ display: 'inline', verticalAlign: 'middle' }} /> using React</span>
+          <span className="footer-dot">•</span>
+          <a
+            href={import.meta.env.VITE_ADMIN_PANEL_URL || 'http://localhost:5181'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-admin-link"
+          >
+            Admin
+          </a>
+        </p>
       </div>
     </footer>
   );
