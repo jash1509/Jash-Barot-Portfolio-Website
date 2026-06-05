@@ -12,11 +12,7 @@ const firebaseConfig = {
 };
 
 // Check if basic VITE_FIREBASE keys are present
-const isFirebaseConfigured = !!(
-  firebaseConfig.apiKey &&
-  firebaseConfig.projectId &&
-  firebaseConfig.appId
-);
+const isFirebaseConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
 
 let app;
 let db;

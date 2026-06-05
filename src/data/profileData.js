@@ -6,7 +6,7 @@ const defaultProfileData = {
   phone: '+91 8347665218',
   github: 'https://github.com/jash1509',
   linkedin: 'https://linkedin.com/in/barot-jash-miteshbhai',
-  web3FormsKey: '',
+  web3FormsKey: 'bdfca75d-cc2e-45a6-84a0-2195c42fba26',
   bio: 'Passionate about creating responsive web applications, intuitive user experiences, and AI-powered solutions using modern JavaScript technologies and Generative AI.',
   education: {
     degree: 'B.Tech Artificial Intelligence & Data Science',
