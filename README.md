@@ -110,18 +110,6 @@ npm run preview
 
 ---
 
-## 📸 Screenshots
-
-> Add screenshots of your portfolio here after building
-
-| Section | Preview |
-|---|---|
-| Hero | _screenshot_ |
-| Skills | _screenshot_ |
-| Projects | _screenshot_ |
-| Contact | _screenshot_ |
-
----
 
 ## 🌐 Deployment
 
