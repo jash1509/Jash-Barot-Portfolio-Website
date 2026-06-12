@@ -8,13 +8,72 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export const PortfolioContext = createContext();
 
+// ── Normalizers ─────────────────────────────────────────────────────────────
+// Admin panel saves: { title, company, points, tags, type, duration, description }
+// Portfolio reads:   { role, company, highlights, technologies, type, typeLabel, duration, description }
+const normalizeExperience = (raw) => ({
+  id:           raw.id          ?? raw.id,
+  role:         raw.role        ?? raw.title       ?? '',   // admin saves "title"
+  company:      raw.company     ?? '',
+  duration:     raw.duration    ?? '',
+  type:         (raw.type       ?? 'internship').toLowerCase(),
+  typeLabel:    raw.typeLabel   ?? raw.type        ?? 'Internship',
+  description:  raw.description ?? '',
+  highlights:   raw.highlights  ?? raw.points      ?? [],   // admin saves "points"
+  technologies: raw.technologies?? raw.tags        ?? [],   // admin saves "tags"
+});
+
+// Admin panel saves: { title, description, tags, github, live, featured, imageUrl }
+// Portfolio reads:   { id, title, description, technologies, github, liveDemo, featured, imageUrl }
+const normalizeProject = (raw) => ({
+  id:           raw.id          ?? Date.now(),
+  title:        raw.title       ?? '',
+  description:  raw.description ?? '',
+  technologies: raw.technologies?? raw.tags        ?? [],   // admin saves "tags"
+  github:       raw.github      ?? null,
+  liveDemo:     raw.liveDemo    ?? raw.live        ?? null, // admin saves "live"
+  featured:     raw.featured    ?? false,
+  imageUrl:     raw.imageUrl    ?? '',
+});
+
+// Admin panel saves flat profile fields; portfolio reads nested { education, stats, titles[] }
+const normalizeProfile = (raw) => {
+  // If it already has the nested shape (old format), return as-is
+  if (raw.education && raw.stats && Array.isArray(raw.titles)) return raw;
+
+  // New flat format saved by admin panel
+  return {
+    ...defaultProfileData,
+    name:     raw.name     ?? defaultProfileData.name,
+    fullName: raw.fullName ?? defaultProfileData.fullName,
+    bio:      raw.bio      ?? defaultProfileData.bio,
+    email:    raw.email    ?? defaultProfileData.email,
+    phone:    raw.phone    ?? defaultProfileData.phone,
+    github:   raw.github   ?? defaultProfileData.github,
+    linkedin: raw.linkedin ?? defaultProfileData.linkedin,
+    titles:   raw.titles   ?? [raw.tagline ?? defaultProfileData.titles[0]],
+    education: {
+      degree:   raw.education ?? defaultProfileData.education.degree,
+      college:  raw.institution ?? defaultProfileData.education.college,
+      duration: raw.year       ?? defaultProfileData.education.duration,
+      location: defaultProfileData.education.location,
+    },
+    stats: {
+      projectsCount: raw.statsProjects ?? defaultProfileData.stats.projectsCount,
+      techCount:     raw.statsTech     ?? defaultProfileData.stats.techCount,
+      gptsCount:     raw.statsGPT      ?? defaultProfileData.stats.gptsCount,
+    },
+  };
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 export const PortfolioProvider = ({ children }) => {
   const [profile, setProfile] = useState(defaultProfileData);
   const [experiences, setExperiences] = useState(defaultExperienceData);
   const [skills, setSkills] = useState(defaultSkillsData);
   const [projects, setProjects] = useState(defaultProjectsData);
   const [isLoading, setIsLoading] = useState(true);
-  const [syncMode, setSyncMode] = useState('local'); // 'local' or 'firebase'
+  const [syncMode, setSyncMode] = useState('local');
 
   // Load fallback local storage data
   const loadLocalFallback = () => {
@@ -24,14 +83,14 @@ export const PortfolioProvider = ({ children }) => {
       const savedSkills = localStorage.getItem('pf_skills');
       const savedProj = localStorage.getItem('pf_projects');
 
-      if (savedProfile) setProfile(JSON.parse(savedProfile));
-      if (savedExp) setExperiences(JSON.parse(savedExp));
+      if (savedProfile) setProfile(normalizeProfile(JSON.parse(savedProfile)));
+      if (savedExp) setExperiences(JSON.parse(savedExp).map(normalizeExperience));
       if (savedSkills) setSkills(JSON.parse(savedSkills));
-      if (savedProj) setProjects(JSON.parse(savedProj));
-      
+      if (savedProj) setProjects(JSON.parse(savedProj).map(normalizeProject));
+
       setSyncMode('local');
     } catch (e) {
-      console.error("Failed to load from local storage:", e);
+      console.error('Failed to load from local storage:', e);
     }
   };
 
@@ -43,7 +102,7 @@ export const PortfolioProvider = ({ children }) => {
       try {
         await setDoc(doc(db, 'portfolio', 'profile'), newProfile);
       } catch (err) {
-        console.error("Firebase save profile failed:", err);
+        console.error('Firebase save profile failed:', err);
       }
     }
   };
@@ -55,7 +114,7 @@ export const PortfolioProvider = ({ children }) => {
       try {
         await setDoc(doc(db, 'portfolio', 'experience'), { list: newExp });
       } catch (err) {
-        console.error("Firebase save experience failed:", err);
+        console.error('Firebase save experience failed:', err);
       }
     }
   };
@@ -67,7 +126,7 @@ export const PortfolioProvider = ({ children }) => {
       try {
         await setDoc(doc(db, 'portfolio', 'skills'), { categories: newSkills });
       } catch (err) {
-        console.error("Firebase save skills failed:", err);
+        console.error('Firebase save skills failed:', err);
       }
     }
   };
@@ -79,7 +138,7 @@ export const PortfolioProvider = ({ children }) => {
       try {
         await setDoc(doc(db, 'portfolio', 'projects'), { list: newProj });
       } catch (err) {
-        console.error("Firebase save projects failed:", err);
+        console.error('Firebase save projects failed:', err);
       }
     }
   };
@@ -103,10 +162,10 @@ export const PortfolioProvider = ({ children }) => {
       }
     };
 
-    // 1. Profile real-time updates
+    // 1. Profile
     const unsubProfile = onSnapshot(doc(db, 'portfolio', 'profile'), async (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data();
+        const data = normalizeProfile(snapshot.data());
         setProfile(data);
         localStorage.setItem('pf_profile', JSON.stringify(data));
       } else {
@@ -115,21 +174,21 @@ export const PortfolioProvider = ({ children }) => {
         try {
           await setDoc(doc(db, 'portfolio', 'profile'), defaultProfileData);
         } catch (err) {
-          console.error("Error creating default profile doc:", err);
+          console.error('Error creating default profile doc:', err);
         }
       }
       markLoaded('profile');
     }, (error) => {
-      console.error("Firebase read profile error, using local/default fallback:", error);
+      console.error('Firebase read profile error, using local/default fallback:', error);
       const saved = localStorage.getItem('pf_profile');
-      if (saved) setProfile(JSON.parse(saved));
+      if (saved) setProfile(normalizeProfile(JSON.parse(saved)));
       markLoaded('profile');
     });
 
-    // 2. Experience real-time updates
+    // 2. Experience
     const unsubExperience = onSnapshot(doc(db, 'portfolio', 'experience'), async (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data().list || [];
+        const data = (snapshot.data().list || []).map(normalizeExperience);
         setExperiences(data);
         localStorage.setItem('pf_experiences', JSON.stringify(data));
       } else {
@@ -138,18 +197,18 @@ export const PortfolioProvider = ({ children }) => {
         try {
           await setDoc(doc(db, 'portfolio', 'experience'), { list: defaultExperienceData });
         } catch (err) {
-          console.error("Error creating default experience doc:", err);
+          console.error('Error creating default experience doc:', err);
         }
       }
       markLoaded('experience');
     }, (error) => {
-      console.error("Firebase read experience error, using local/default fallback:", error);
+      console.error('Firebase read experience error:', error);
       const saved = localStorage.getItem('pf_experiences');
-      if (saved) setExperiences(JSON.parse(saved));
+      if (saved) setExperiences(JSON.parse(saved).map(normalizeExperience));
       markLoaded('experience');
     });
 
-    // 3. Skills real-time updates
+    // 3. Skills
     const unsubSkills = onSnapshot(doc(db, 'portfolio', 'skills'), async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data().categories || [];
@@ -161,21 +220,21 @@ export const PortfolioProvider = ({ children }) => {
         try {
           await setDoc(doc(db, 'portfolio', 'skills'), { categories: defaultSkillsData });
         } catch (err) {
-          console.error("Error creating default skills doc:", err);
+          console.error('Error creating default skills doc:', err);
         }
       }
       markLoaded('skills');
     }, (error) => {
-      console.error("Firebase read skills error, using local/default fallback:", error);
+      console.error('Firebase read skills error:', error);
       const saved = localStorage.getItem('pf_skills');
       if (saved) setSkills(JSON.parse(saved));
       markLoaded('skills');
     });
 
-    // 4. Projects real-time updates
+    // 4. Projects
     const unsubProjects = onSnapshot(doc(db, 'portfolio', 'projects'), async (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data().list || [];
+        const data = (snapshot.data().list || []).map(normalizeProject);
         setProjects(data);
         localStorage.setItem('pf_projects', JSON.stringify(data));
       } else {
@@ -184,14 +243,14 @@ export const PortfolioProvider = ({ children }) => {
         try {
           await setDoc(doc(db, 'portfolio', 'projects'), { list: defaultProjectsData });
         } catch (err) {
-          console.error("Error creating default projects doc:", err);
+          console.error('Error creating default projects doc:', err);
         }
       }
       markLoaded('projects');
     }, (error) => {
-      console.error("Firebase read projects error, using local/default fallback:", error);
+      console.error('Firebase read projects error:', error);
       const saved = localStorage.getItem('pf_projects');
-      if (saved) setProjects(JSON.parse(saved));
+      if (saved) setProjects(JSON.parse(saved).map(normalizeProject));
       markLoaded('projects');
     });
 
@@ -204,9 +263,7 @@ export const PortfolioProvider = ({ children }) => {
   }, []);
 
   // Actions
-  const updateProfile = (updatedProfile) => {
-    saveProfile(updatedProfile);
-  };
+  const updateProfile = (updatedProfile) => saveProfile(updatedProfile);
 
   const addExperience = (exp) => {
     const newExp = [...experiences, { ...exp, id: Date.now() }];
