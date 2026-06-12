@@ -8,11 +8,20 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Check if basic VITE_FIREBASE keys are present
-const isFirebaseConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId);
+// All three required keys must be present for Firebase to work
+const missingKeys = ['apiKey', 'projectId', 'appId'].filter((k) => !firebaseConfig[k]);
+const isFirebaseConfigured = missingKeys.length === 0;
+
+if (!isFirebaseConfigured) {
+  console.warn(
+    '[Firebase] Missing required environment variables:',
+    missingKeys.map((k) => `VITE_FIREBASE_${k.replace(/([A-Z])/g, '_$1').toUpperCase()}`).join(', '),
+    '\nMake sure these are set in your Vercel project settings under Settings → Environment Variables.'
+  );
+}
 
 let app;
 let db;
@@ -23,11 +32,13 @@ if (isFirebaseConfigured) {
     app = initializeApp(firebaseConfig);
     db = getFirestore(app);
     auth = getAuth(app);
+    console.log('[Firebase] Initialized successfully. Project:', firebaseConfig.projectId);
   } catch (error) {
-    console.error("Firebase initialization failed:", error);
+    console.error('[Firebase] Initialization failed:', error);
   }
 }
 
 export { db, auth };
-export const dbActive = !!db;
+// dbActive is true only when Firebase initialized without errors
+export const dbActive = !!(db);
 export default app;
