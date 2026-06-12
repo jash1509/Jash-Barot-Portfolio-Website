@@ -10,6 +10,8 @@ import {
 } from 'react-icons/fi';
 import { PortfolioContext } from '../context/PortfolioContext';
 import SectionTitle from './SectionTitle';
+import { db, dbActive } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import '../styles/contact.css';
 
 const Contact = () => {
@@ -76,32 +78,48 @@ const Contact = () => {
 
     if (Object.keys(newErrors).length === 0) {
       setIsSubmitting(true);
-      const accessKey = profile?.web3FormsKey || import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE";
       try {
-        const response = await fetch("https://api.web3forms.com/submit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            access_key: accessKey,
+        if (dbActive) {
+          // Send to Firebase Firestore
+          await addDoc(collection(db, 'messages'), {
             name: formData.name,
             email: formData.email,
             message: formData.message,
-          }),
-        });
-
-        const result = await response.json();
-        if (result.success) {
+            createdAt: serverTimestamp(),
+            read: false
+          });
           setIsSuccess(true);
           setFormData({ name: '', email: '', message: '' });
           setTimeout(() => setIsSuccess(false), 5000);
         } else {
-          setErrors({ submit: result.message || "Something went wrong." });
+          // Fallback to Web3Forms
+          const accessKey = profile?.web3FormsKey || import.meta.env.VITE_WEB3FORMS_ACCESS_KEY || "YOUR_ACCESS_KEY_HERE";
+          const response = await fetch("https://api.web3forms.com/submit", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              access_key: accessKey,
+              name: formData.name,
+              email: formData.email,
+              message: formData.message,
+            }),
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            setIsSuccess(true);
+            setFormData({ name: '', email: '', message: '' });
+            setTimeout(() => setIsSuccess(false), 5000);
+          } else {
+            setErrors({ submit: result.message || "Something went wrong." });
+          }
         }
       } catch (err) {
-        setErrors({ submit: "Failed to connect to the form submission service." });
+        console.error("Form submission failed:", err);
+        setErrors({ submit: dbActive ? "Failed to send message via database." : "Failed to connect to the form submission service." });
       } finally {
         setIsSubmitting(false);
       }

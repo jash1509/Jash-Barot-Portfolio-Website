@@ -4,7 +4,7 @@ import defaultSkillsData from '../data/skillsData';
 import defaultProjectsData from '../data/projectsData';
 import defaultExperienceData from '../data/experienceData';
 import { db, dbActive } from '../firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 export const PortfolioContext = createContext();
 
@@ -84,70 +84,123 @@ export const PortfolioProvider = ({ children }) => {
     }
   };
 
-  // Fetch initial data
+  // Set up real-time listener for database changes
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      if (dbActive) {
-        try {
-          // Profile doc
-          const pDoc = await getDoc(doc(db, 'portfolio', 'profile'));
-          let currentProfile = defaultProfileData;
-          if (pDoc.exists()) {
-            currentProfile = pDoc.data();
-            setProfile(currentProfile);
-          } else {
-            await setDoc(doc(db, 'portfolio', 'profile'), defaultProfileData);
-          }
-
-          // Experiences doc
-          const eDoc = await getDoc(doc(db, 'portfolio', 'experience'));
-          let currentExp = defaultExperienceData;
-          if (eDoc.exists()) {
-            currentExp = eDoc.data().list || [];
-            setExperiences(currentExp);
-          } else {
-            await setDoc(doc(db, 'portfolio', 'experience'), { list: defaultExperienceData });
-          }
-
-          // Skills doc
-          const sDoc = await getDoc(doc(db, 'portfolio', 'skills'));
-          let currentSkills = defaultSkillsData;
-          if (sDoc.exists()) {
-            currentSkills = sDoc.data().categories || [];
-            setSkills(currentSkills);
-          } else {
-            await setDoc(doc(db, 'portfolio', 'skills'), { categories: defaultSkillsData });
-          }
-
-          // Projects doc
-          const prDoc = await getDoc(doc(db, 'portfolio', 'projects'));
-          let currentProj = defaultProjectsData;
-          if (prDoc.exists()) {
-            currentProj = prDoc.data().list || [];
-            setProjects(currentProj);
-          } else {
-            await setDoc(doc(db, 'portfolio', 'projects'), { list: defaultProjectsData });
-          }
-
-          // Save local copy for offline caching
-          localStorage.setItem('pf_profile', JSON.stringify(currentProfile));
-          localStorage.setItem('pf_experiences', JSON.stringify(currentExp));
-          localStorage.setItem('pf_skills', JSON.stringify(currentSkills));
-          localStorage.setItem('pf_projects', JSON.stringify(currentProj));
-
-          setSyncMode('firebase');
-        } catch (error) {
-          console.error("Firebase read error, using local fallback:", error);
-          loadLocalFallback();
-        }
-      } else {
-        loadLocalFallback();
-      }
+    if (!dbActive) {
+      loadLocalFallback();
       setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const loadedDocs = new Set();
+
+    const markLoaded = (key) => {
+      loadedDocs.add(key);
+      if (loadedDocs.size === 4) {
+        setIsLoading(false);
+        setSyncMode('firebase');
+      }
     };
 
-    fetchData();
+    // 1. Profile real-time updates
+    const unsubProfile = onSnapshot(doc(db, 'portfolio', 'profile'), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setProfile(data);
+        localStorage.setItem('pf_profile', JSON.stringify(data));
+      } else {
+        setProfile(defaultProfileData);
+        localStorage.setItem('pf_profile', JSON.stringify(defaultProfileData));
+        try {
+          await setDoc(doc(db, 'portfolio', 'profile'), defaultProfileData);
+        } catch (err) {
+          console.error("Error creating default profile doc:", err);
+        }
+      }
+      markLoaded('profile');
+    }, (error) => {
+      console.error("Firebase read profile error, using local/default fallback:", error);
+      const saved = localStorage.getItem('pf_profile');
+      if (saved) setProfile(JSON.parse(saved));
+      markLoaded('profile');
+    });
+
+    // 2. Experience real-time updates
+    const unsubExperience = onSnapshot(doc(db, 'portfolio', 'experience'), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data().list || [];
+        setExperiences(data);
+        localStorage.setItem('pf_experiences', JSON.stringify(data));
+      } else {
+        setExperiences(defaultExperienceData);
+        localStorage.setItem('pf_experiences', JSON.stringify(defaultExperienceData));
+        try {
+          await setDoc(doc(db, 'portfolio', 'experience'), { list: defaultExperienceData });
+        } catch (err) {
+          console.error("Error creating default experience doc:", err);
+        }
+      }
+      markLoaded('experience');
+    }, (error) => {
+      console.error("Firebase read experience error, using local/default fallback:", error);
+      const saved = localStorage.getItem('pf_experiences');
+      if (saved) setExperiences(JSON.parse(saved));
+      markLoaded('experience');
+    });
+
+    // 3. Skills real-time updates
+    const unsubSkills = onSnapshot(doc(db, 'portfolio', 'skills'), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data().categories || [];
+        setSkills(data);
+        localStorage.setItem('pf_skills', JSON.stringify(data));
+      } else {
+        setSkills(defaultSkillsData);
+        localStorage.setItem('pf_skills', JSON.stringify(defaultSkillsData));
+        try {
+          await setDoc(doc(db, 'portfolio', 'skills'), { categories: defaultSkillsData });
+        } catch (err) {
+          console.error("Error creating default skills doc:", err);
+        }
+      }
+      markLoaded('skills');
+    }, (error) => {
+      console.error("Firebase read skills error, using local/default fallback:", error);
+      const saved = localStorage.getItem('pf_skills');
+      if (saved) setSkills(JSON.parse(saved));
+      markLoaded('skills');
+    });
+
+    // 4. Projects real-time updates
+    const unsubProjects = onSnapshot(doc(db, 'portfolio', 'projects'), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data().list || [];
+        setProjects(data);
+        localStorage.setItem('pf_projects', JSON.stringify(data));
+      } else {
+        setProjects(defaultProjectsData);
+        localStorage.setItem('pf_projects', JSON.stringify(defaultProjectsData));
+        try {
+          await setDoc(doc(db, 'portfolio', 'projects'), { list: defaultProjectsData });
+        } catch (err) {
+          console.error("Error creating default projects doc:", err);
+        }
+      }
+      markLoaded('projects');
+    }, (error) => {
+      console.error("Firebase read projects error, using local/default fallback:", error);
+      const saved = localStorage.getItem('pf_projects');
+      if (saved) setProjects(JSON.parse(saved));
+      markLoaded('projects');
+    });
+
+    return () => {
+      unsubProfile();
+      unsubExperience();
+      unsubSkills();
+      unsubProjects();
+    };
   }, []);
 
   // Actions

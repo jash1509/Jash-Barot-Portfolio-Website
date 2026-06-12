@@ -48,7 +48,7 @@ const Footer = () => {
           <span>Made with <FiHeart className="footer-heart" style={{ display: 'inline', verticalAlign: 'middle' }} /> using React</span>
           <span className="footer-dot">•</span>
           <a
-            href={import.meta.env.VITE_ADMIN_PANEL_URL || 'http://localhost:5181'}
+            href={import.meta.env.VITE_ADMIN_PANEL_URL || 'https://jashadmin.vercel.app/'}
             target="_blank"
             rel="noopener noreferrer"
             className="footer-admin-link"
